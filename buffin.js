@@ -58,7 +58,7 @@ const limiter = new Bottleneck({
 
 // Inisialisasi CookieJar untuk menangani cookies
 const cookieJar = new CookieJar();
-axiosCookieJarSupport.addCookies(axios, cookieJar);
+axiosCookieJarSupport.default(axios, cookieJar);
 
 // Fungsi untuk menyimpan cookies ke file
 async function saveCookies() {
