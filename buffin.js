@@ -7,7 +7,6 @@ const { Worker, isMainThread, workerData } = require('worker_threads');
 const os = require('os');
 const process = require('process');
 const CookieJar = require('tough-cookie').CookieJar;
-const axiosCookieJarSupport = require('axios-cookiejar-support');
 const cheerio = require('cheerio');
 const { promisify } = require('util');
 const writeFile = promisify(fs.writeFile);
@@ -18,7 +17,7 @@ const cookieFile = 'cookies.json';
 
 // Fungsi untuk memeriksa dan menginstal dependensi
 function installDependencies() {
-    const dependencies = ['axios', 'https-proxy-agent', 'bottleneck', 'tough-cookie', 'axios-cookiejar-support', 'cheerio'];
+    const dependencies = ['axios', 'https-proxy-agent', 'bottleneck', 'tough-cookie', 'cheerio'];
     dependencies.forEach(dep => {
         try {
             require.resolve(dep);
@@ -58,7 +57,6 @@ const limiter = new Bottleneck({
 
 // Inisialisasi CookieJar untuk menangani cookies
 const cookieJar = new CookieJar();
-axiosCookieJarSupport.default(axios, cookieJar);
 
 // Fungsi untuk menyimpan cookies ke file
 async function saveCookies() {
@@ -115,7 +113,9 @@ async function sendRequest(proxy, method = 'GET', data = null) {
             data: data,
             httpAgent: agent,
             httpsAgent: agent,
-            jar: cookieJar // Menggunakan CookieJar untuk menyimpan cookies
+            headers: {
+                'Cookie': cookieJar.getCookieStringSync(url)
+            }
         });
         return response;
     } catch (error) {
