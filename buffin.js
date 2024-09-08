@@ -60,8 +60,12 @@ const cookieJar = new CookieJar();
 
 // Fungsi untuk menyimpan cookies ke file
 async function saveCookies() {
-    const cookies = cookieJar.serializeSync();
-    await writeFile(cookieFile, JSON.stringify(cookies, null, 2));
+    try {
+        const cookies = cookieJar.serializeSync();
+        await writeFile(cookieFile, JSON.stringify(cookies, null, 2));
+    } catch (error) {
+        console.error('Tidak dapat menyimpan cookies:', error.message);
+    }
 }
 
 // Fungsi untuk memuat cookies dari file
@@ -114,12 +118,17 @@ async function sendRequest(proxy, method = 'GET', data = null) {
             httpAgent: agent,
             httpsAgent: agent,
             headers: {
-                'Cookie': cookieJar.getCookieStringSync(url)
+                'Cookie': cookieJar.getCookieStringSync(url) // Menyertakan cookies jika ada
             }
         });
+
+        // Debug informasi respon
+        console.log(`Proxy ${proxy} | Status: ${response.status} | URL: ${response.request.res.responseUrl}`);
+
         return response;
     } catch (error) {
-        console.error('Error:', error.message);
+        console.error(`Error dengan proxy ${proxy}: ${error.message}`);
+        return null; // Mengembalikan null jika terjadi kesalahan
     }
 }
 
@@ -133,9 +142,12 @@ async function workerFunction(method, data) {
             await Promise.race(requests); // Tunggu hingga salah satu permintaan selesai
         }
         const proxy = proxies[Math.floor(Math.random() * proxies.length)];
-        requests.push(limiter.schedule(() => sendRequest(proxy, method, data)));
+        const requestPromise = limiter.schedule(() => sendRequest(proxy, method, data));
+        requests.push(requestPromise);
     }
-    await Promise.all(requests);
+
+    // Tunggu semua permintaan selesai
+    await Promise.all(requests.map(promise => promise.catch(() => null)));
     console.log('Semua permintaan selesai oleh pekerja');
 }
 
